@@ -151,9 +151,10 @@ class Model:
 
         print(f"* Transformer model with [bold]{len(self.get_layers())}[/] layers")
         print("* Abliterable components:")
-        for component, modules in self.get_layer_modules(0).items():
+        for component in self.get_abliterable_components():
+            modules = self.get_layer_modules(0).get(component) or []
             print(
-                f"  * [bold]{component}[/]: [bold]{len(modules)}[/] modules per layer"
+                f"  * [bold]{component}[/]: [bold]{len(modules) if modules else '(hybrid)'}[/] modules per layer"
             )
 
     def _apply_lora(self):

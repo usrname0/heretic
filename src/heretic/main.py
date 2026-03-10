@@ -516,7 +516,7 @@ def run():
             )
             max_weight_position = trial.suggest_float(
                 f"{component}.max_weight_position",
-                0.6 * last_layer_index,
+                0.3 * last_layer_index,
                 1.0 * last_layer_index,
             )
             # For sampling purposes, min_weight is expressed as a fraction of max_weight,
