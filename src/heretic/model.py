@@ -340,9 +340,14 @@ class Model:
                     f"Unexpected Tensor in {component} - expected nn.Module"
                 )
 
-        # Exceptions aren't suppressed here, because there is currently
-        # no alternative location for the attention out-projection.
-        try_add("attn.o_proj", layer.self_attn.o_proj)  # ty:ignore[possibly-missing-attribute]
+        # Full-attention layers (most models, and Qwen3.5 hybrid "full_attention" layers).
+        with suppress(Exception):
+            try_add("attn.o_proj", layer.self_attn.o_proj)  # ty:ignore[possibly-missing-attribute]
+
+        # Linear-attention layers (e.g. Qwen3.5 hybrid "linear_attention" / GatedDeltaNet layers).
+        # Uses a distinct key so the leaf name "out_proj" is included in LoRA target_modules.
+        with suppress(Exception):
+            try_add("linear_attn.out_proj", layer.linear_attn.out_proj)  # ty:ignore[possibly-missing-attribute]
 
         # Most dense models.
         with suppress(Exception):
@@ -374,7 +379,14 @@ class Model:
         return modules
 
     def get_abliterable_components(self) -> list[str]:
-        return list(self.get_layer_modules(0).keys())
+        # Scan all layers to discover all unique component types.
+        # This is necessary for hybrid architectures (e.g. Qwen3.5) where different
+        # layer types expose different attention module names.
+        components: dict[str, bool] = {}
+        for layer_index in range(len(self.get_layers())):
+            for comp in self.get_layer_modules(layer_index).keys():
+                components[comp] = True
+        return list(components.keys())
 
     def abliterate(
         self,
